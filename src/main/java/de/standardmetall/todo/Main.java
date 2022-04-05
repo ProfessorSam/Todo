@@ -1,7 +1,16 @@
 package de.standardmetall.todo;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -9,6 +18,7 @@ public class Main {
 
 	public static void main(String args[]) throws InterruptedException {
 		System.out.println("--- TODO ---");
+		loadTodo();
 		while (true) {
 			clearConsole(false);
 			printTasks();
@@ -29,6 +39,11 @@ public class Main {
 			}
 			if (input.equalsIgnoreCase("D")) {
 				askForDeleteAll();
+				clearConsole();
+			}
+			if (input.equalsIgnoreCase("E")) {
+				System.out.println("Todo wird gespeichert");
+				saveTodo();
 				clearConsole();
 			}
 		}
@@ -60,6 +75,7 @@ public class Main {
 			System.out.println("Keine");
 			System.out.println(" ");
 		} else {
+			System.out.println(" ");
 			for (int i = 0; i < Todo.getTasks().size(); i++) {
 				System.out.println("-> " + (i + 1) + ": " + Todo.getTasks().get(i).getDescription());
 			}
@@ -74,6 +90,7 @@ public class Main {
 		System.out.println("B : Aufgabe hinzufügen");
 		System.out.println("C : Aufgabe entfernen");
 		System.out.println("D : Alle Aufgaben löschen");
+		System.out.println("E : Aufgaben speichern");
 		System.out.println(" ");
 	}
 	
@@ -138,6 +155,40 @@ public class Main {
 			return;
 		}
 		System.out.println("Löschen abgebrochen");
+	}
+	
+	//Speichert Todo in todo.txt
+	private static void saveTodo() {
+		File file = new File("todo.txt");
+		if(file.exists()) {
+			file.delete();
+		}
+		try {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+			for(Todo todo : Todo.getTasks()) {
+				writer.write(todo.getDescription());
+				writer.newLine();
+			}
+			writer.close();
+		} catch (IOException e) {
+			System.out.println("Todoliste konnte nicht gespeichert werden");
+		}
+	}
+	
+	//Lädt todo aus todo.txt
+	private static void loadTodo() {
+		File file = new File("todo.txt");
+		try {
+			URI uri = file.toURI();
+			List<String> lines = Files.readAllLines(Paths.get(uri), StandardCharsets.UTF_8);
+			for(String string : lines) {
+				Todo.getTasks().add(new Todo(string));
+			}
+		} catch (FileNotFoundException e) {
+			System.out.println("Todoliste konnte nicht geladen werden " + e.getLocalizedMessage());
+		} catch (IOException e) {
+			System.out.println("Todoliste konnte nicht geladen werden " + e.getLocalizedMessage());
+		}
 	}
 
 }
