@@ -19,6 +19,11 @@ public class Main {
 	public static void main(String args[]) throws InterruptedException {
 		System.out.println("--- TODO ---");
 		loadTodo();
+		mainLoop();
+	}	
+	
+	//Main process loop
+	private static void mainLoop() {
 		while (true) {
 			clearConsole(false);
 			printTasks();
@@ -47,8 +52,7 @@ public class Main {
 				clearConsole();
 			}
 		}
-	}	
-	
+	}
 	//Console clearen
 	private static void clearConsole(boolean delay) {
 		try {
