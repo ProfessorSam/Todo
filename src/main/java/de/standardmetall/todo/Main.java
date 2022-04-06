@@ -21,12 +21,16 @@ import java.util.Scanner;
 public class Main {
 	private static Scanner scanner = new Scanner(System.in);
 	private static boolean autosave = true;
+	private static boolean debug = false;
 
 	public static void main(String args[]) throws InterruptedException {
 		System.out.println("--- TODO ---");
 		for(String string : args) {
 			if(string.equalsIgnoreCase("-disableAutoSave")) {
 				autosave = false;
+			}
+			if(string.equalsIgnoreCase("-debug")) {
+				debug = true;
 			}
 		}
 		loadTodo();
@@ -69,6 +73,9 @@ public class Main {
 	}
 	//Console clearen
 	private static void clearConsole(boolean delay) {
+		if(debug) {
+			return;
+		}
 		try {
 			if(delay == true) {
 				Thread.sleep(1500);
@@ -117,7 +124,6 @@ public class Main {
 
 	// Zeigt die hilfe
 	private static void printHelp() {
-		System.out.println("--- TODO ---");
 		System.out.println("A : Alle Aufgaben anzeigen");
 		System.out.println("B : Aufgabe hinzufügen");
 		System.out.println("C : Aufgabe entfernen");
@@ -145,16 +151,8 @@ public class Main {
 		}
 		System.out.println("Bis wann soll die Aufgabe erledigt sein?");
 		String dateInput = scanner.nextLine();
-		Date date = Calendar.getInstance().getTime();
-		try {
-			date = DateFormat.getInstance().parse(dateInput);
-		} catch (ParseException e) {
-			System.out.println("Bit gibt das Datum wie folgt ein: dd.mm.yyyy mm.hh");
-			clearConsole();
-			askForTaskAndAdd();
-			return;
-		}
-		if(date.compareTo(Calendar.getInstance().getTime()) < 0) {
+		Date date = parseDate(dateInput);
+		if(date.compareTo(Calendar.getInstance().getTime()) <= 0) {
 			System.out.println("Das Datum muss in der Zukunft liegen!");
 			clearConsole(true);
 			printTasks();
@@ -166,9 +164,20 @@ public class Main {
 		System.out.println("Aufgabe erfolgreich hinzugefügt!");
 	}
 	
+	//Datum string zu datum
+	private static Date parseDate(String string) {
+		Date date = Calendar.getInstance().getTime();
+		try {
+			date = DateFormat.getInstance().parse(string);
+		} catch (ParseException e) {
+			System.out.println("Bit gibt das Datum wie folgt ein: dd.mm.yyyy mm.hh");
+			return date;
+		}
+		return date;
+	}
+	
 	//Wartet auf eingabe von Aufgabennummer und löscht anschließend
 	private static void askForTaskAndDelete() {
-		printTasks();
 		System.out.println(" ");
 		System.out.println("Welche Aufgabe solle gelöscht werden?");
 		String input = scanner.nextLine();
