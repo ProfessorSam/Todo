@@ -144,7 +144,7 @@ public class Main {
 			askForTaskAndAdd();
 			return;
 		}
-		if(input == "" || input == " ") {
+		if(input.chars().allMatch(Character::isWhitespace)|| input.isEmpty()) {
 			System.out.println("Bitte füge eine Beschreibung hinzu!");
 			askForTaskAndAdd();
 			return;
