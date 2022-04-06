@@ -9,15 +9,26 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
 public class Main {
 	private static Scanner scanner = new Scanner(System.in);
+	private static boolean autosave = true;
 
 	public static void main(String args[]) throws InterruptedException {
 		System.out.println("--- TODO ---");
+		for(String string : args) {
+			if(string.equalsIgnoreCase("-disableAutoSave")) {
+				autosave = false;
+			}
+		}
 		loadTodo();
 		mainLoop();
 	}	
@@ -37,16 +48,19 @@ public class Main {
 			if (input.equalsIgnoreCase("B")) {
 				askForTaskAndAdd();
 				clearConsole();
+				autoSave();
 			}
 			if (input.equalsIgnoreCase("C")) {
 				askForTaskAndDelete();
 				clearConsole();
+				autoSave();
 			}
 			if (input.equalsIgnoreCase("D")) {
 				askForDeleteAll();
 				clearConsole();
+				autoSave();
 			}
-			if (input.equalsIgnoreCase("E")) {
+			if (input.equalsIgnoreCase("E") && !autosave) {
 				System.out.println("Todo wird gespeichert");
 				saveTodo();
 				clearConsole();
@@ -74,6 +88,7 @@ public class Main {
 
 	// Gibt alle aufgaben über sysout aus
 	private static void printTasks() {
+		sortTasks();
 		System.out.println("Du hast folgende Aufgaben:");
 		if (Todo.getTasks().size() == 0) {
 			System.out.println("Keine");
@@ -81,10 +96,23 @@ public class Main {
 		} else {
 			System.out.println(" ");
 			for (int i = 0; i < Todo.getTasks().size(); i++) {
-				System.out.println("-> " + (i + 1) + ": " + Todo.getTasks().get(i).getDescription());
+				if(Todo.getTasks().get(i).getDate().compareTo(Calendar.getInstance().getTime()) > 0) {
+					System.out.println("-> " + (i + 1) + ") [" + DateFormat.getInstance().format(Todo.getTasks().get(i).getDate()) + "] " + Todo.getTasks().get(i).getDescription());
+				}
+				else {
+					System.out.println("-> " + (i + 1) + ") [\u001B[31m" + DateFormat.getInstance().format(Todo.getTasks().get(i).getDate()) + "\u001B[0m] " + Todo.getTasks().get(i).getDescription());
+				}
 			}
 			System.out.println(" ");
 		}
+	}
+	
+	//Sortiert Liste mit Todos nach datum neuste -> älteste
+	private static void sortTasks() {
+		ArrayList<Todo> tasks = new ArrayList<>(Todo.getTasks());
+		Collections.sort(tasks);
+		Todo.getTasks().clear();
+		Todo.getTasks().addAll(tasks);
 	}
 
 	// Zeigt die hilfe
@@ -94,7 +122,9 @@ public class Main {
 		System.out.println("B : Aufgabe hinzufügen");
 		System.out.println("C : Aufgabe entfernen");
 		System.out.println("D : Alle Aufgaben löschen");
-		System.out.println("E : Aufgaben speichern");
+		if(!autosave) {
+			System.out.println("E : Aufgaben speichern");
+		}
 		System.out.println(" ");
 	}
 	
@@ -108,12 +138,30 @@ public class Main {
 			askForTaskAndAdd();
 			return;
 		}
-		if(input == "") {
+		if(input == "" || input == " ") {
 			System.out.println("Bitte füge eine Beschreibung hinzu!");
 			askForTaskAndAdd();
 			return;
 		}
-		Todo todo = new Todo(input);
+		System.out.println("Bis wann soll die Aufgabe erledigt sein?");
+		String dateInput = scanner.nextLine();
+		Date date = Calendar.getInstance().getTime();
+		try {
+			date = DateFormat.getInstance().parse(dateInput);
+		} catch (ParseException e) {
+			System.out.println("Bit gibt das Datum wie folgt ein: dd.mm.yyyy mm.hh");
+			clearConsole();
+			askForTaskAndAdd();
+			return;
+		}
+		if(date.compareTo(Calendar.getInstance().getTime()) < 0) {
+			System.out.println("Das Datum muss in der Zukunft liegen!");
+			clearConsole(true);
+			printTasks();
+			askForTaskAndAdd();
+			return;
+		}
+		Todo todo = new Todo(input, date);
 		Todo.getTasks().add(todo);
 		System.out.println("Aufgabe erfolgreich hinzugefügt!");
 	}
@@ -170,7 +218,7 @@ public class Main {
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			for(Todo todo : Todo.getTasks()) {
-				writer.write(todo.getDescription());
+				writer.write(DateFormat.getInstance().format(todo.getDate()) + ";" +todo.getDescription());
 				writer.newLine();
 			}
 			writer.close();
@@ -186,12 +234,22 @@ public class Main {
 			URI uri = file.toURI();
 			List<String> lines = Files.readAllLines(Paths.get(uri), StandardCharsets.UTF_8);
 			for(String string : lines) {
-				Todo.getTasks().add(new Todo(string));
+				Date date = DateFormat.getInstance().parse(string.split(";")[0]);
+				Todo.getTasks().add(new Todo(string.split(";", 2)[1], date));
 			}
 		} catch (FileNotFoundException e) {
 			System.out.println("Todoliste konnte nicht geladen werden " + e.getLocalizedMessage());
 		} catch (IOException e) {
 			System.out.println("Todoliste konnte nicht geladen werden " + e.getLocalizedMessage());
+		} catch (ParseException e) {
+			System.out.println("Todoliste konnte nicht geladen werden " + e.getLocalizedMessage());
+		}
+	}
+	
+	//Überprüft ob autosave an ist und speichert
+	private static void autoSave() {
+		if(autosave) {
+		saveTodo();
 		}
 	}
 
